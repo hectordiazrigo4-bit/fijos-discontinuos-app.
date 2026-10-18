@@ -34,9 +34,20 @@
 html, body { margin: 0; background: var(--bg); color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; }
 body { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
-header { padding: 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+header { padding: 18px 16px; background: linear-gradient(135deg, #0f6e56, #1b8f72); color: #fff; }
+header h1 { color: #fff; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.kpi.wide { grid-column: 1 / -1; }
+.kpi.kpi-warn { border-color: var(--warn); }
+.kpi span { display: block; font-size: .8rem; color: var(--muted); }
+.kpi b { display: block; font-size: 1.35rem; margin: 4px 0; }
+.kpi small { color: var(--muted); font-size: .8rem; }
+.bar { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 8px 0 4px; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
 header h1 { margin: 0; font-size: 1.15rem; }
-header p { margin: 4px 0 0; color: var(--muted); font-size: .85rem; }
+header p { margin: 4px 0 0; color: rgba(255,255,255,.88); font-size: .85rem; }
+header .note { color: rgba(255,255,255,.75) !important; }
 nav { display: flex; gap: 6px; overflow-x: auto; padding: 10px 12px; background: var(--surface);
   border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
 nav button { flex: 0 0 auto; border: 1px solid var(--line); background: transparent; color: var(--text);
@@ -80,6 +91,13 @@ footer { text-align: center; color: var(--muted); font-size: .78rem; padding: 20
   #printArea { display: block; position: absolute; left: 0; top: 0; width: 100%; padding: 16px; background: #fff; color: #000; }
   #printArea pre { white-space: pre-wrap; font-family: system-ui, sans-serif; font-size: 12pt; margin: 0; }
 }
+@media (max-width: 700px) {
+  body nav { position: fixed; top: auto; bottom: 0; left: 0; right: 0; border-top: 1px solid var(--line); border-bottom: 0;
+        justify-content: space-around; padding: 8px 6px calc(8px + env(safe-area-inset-bottom, 0px)); }
+  body nav button { flex: 1; border: 0; border-radius: 12px; font-size: .72rem; padding: 8px 4px; text-align: center; }
+  body nav button.active { background: var(--accent); color: #fff; }
+  body main { padding-bottom: 96px; }
+}
 </style>
 </head>
 <body>
@@ -103,6 +121,7 @@ footer { text-align: center; color: var(--muted); font-size: .78rem; padding: 20
 
   <!-- ESTADO -->
   <section id="estado" class="active">
+    <div class="kpis" id="kpis"></div>
     <div class="card">
       <h2>Datos de tu contrato</h2>
       <label for="tipoContrato">Tipo de contrato</label>
@@ -469,6 +488,7 @@ function estadoLlamamiento(l) {
 }
 
 function renderLlamamientos() {
+  renderKpis();
   renderAlertas();
   const cont = $("listaLlamamientos");
   if (!estado.llamamientos.length) {
@@ -533,6 +553,7 @@ function derechoVacaciones(anio) {
 
 function renderVacaciones() {
   renderLocales();
+  renderKpis();
   const anio = parseInt($("vacAnio").value, 10) || 2026;
   const derecho = derechoVacaciones(anio);
 
@@ -896,6 +917,46 @@ function renderAlertas() {
   });
   box.hidden = avisos.length === 0;
   box.innerHTML = avisos.map((a) => `<p class="alert" style="margin:0 0 6px">⚠ ${a}</p>`).join("");
+}
+
+// PANEL DE RESUMEN: cifras clave al abrir la app
+function renderKpis() {
+  const box = $("kpis");
+  if (!box) return;
+  const anio = parseInt($("vacAnio").value, 10) || 2026;
+  const derecho = derechoVacaciones(anio);
+  const disfr = estado.vacaciones.filter((p) => p.ini.getFullYear() === anio).reduce((s, p) => s + diasNaturales(p.ini, p.fin), 0);
+  const festAnio = estado.festivos.filter((f) => f.fecha.getFullYear() === anio);
+  const acum = festAnio.filter((f) => f.estado === "acumulado").length;
+  const total = derecho.total + acum;
+  const pend = Math.max(total - disfr, 0);
+  const pct = total ? Math.min(100, Math.round(disfr / total * 100)) : 0;
+  const pagados = festAnio.filter((f) => f.estado === "pagado").length;
+  let html = `
+    <div class="kpi wide">
+      <span>Vacaciones ${anio}</span>
+      <b>${pend} días pendientes</b>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <small>${disfr} de ${total} días disfrutados</small>
+    </div>`;
+  if (tipo() === "discontinuo") {
+    const pendLlam = estado.llamamientos.filter((l) => !l.respondido);
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const proximos = pendLlam.map((l) => new Date(l.com.getTime() + 3 * DIA)).filter((d) => d >= hoy).sort((a, b) => a - b);
+    html += `
+    <div class="kpi ${pendLlam.length ? "kpi-warn" : ""}">
+      <span>Llamamientos sin responder</span>
+      <b>${pendLlam.length}</b>
+      <small>${proximos.length ? "Próximo plazo: " + fmt(proximos[0]) : "Todo al día"}</small>
+    </div>`;
+  }
+  html += `
+    <div class="kpi">
+      <span>Festivos trabajados ${anio}</span>
+      <b>${festAnio.length}</b>
+      <small>${pagados} pagados</small>
+    </div>`;
+  box.innerHTML = html;
 }
 
 // FESTIVOS LOCALES: los añade cada persona según su municipio
