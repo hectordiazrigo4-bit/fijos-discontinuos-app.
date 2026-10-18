@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<title>Fijos y fijos discontinuos · Hostelería Baleares</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f6e56">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f5f5f2; --surface: #ffffff; --text: #1d1d1b; --muted: #6b6b66;
+  --line: #e2e2dc; --accent: #0f6e56; --warn: #b26a00; --bad: #b3261e; --ok: #2e7d32;
+  --chip: #e8f3ef; --warnbg: #fff3e0; --badbg: #fdecea;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #161715; --surface: #222420; --text: #eeeeea; --muted: #a3a39c;
+    --line: #353631; --accent: #5fc3a6; --warn: #f0b64f; --bad: #ff8a80; --ok: #81c784;
+    --chip: #1d3a31; --warnbg: #3a2f18; --badbg: #3d2220;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161715; --surface: #222420; --text: #eeeeea; --muted: #a3a39c;
+  --line: #353631; --accent: #5fc3a6; --warn: #f0b64f; --bad: #ff8a80; --ok: #81c784;
+  --chip: #1d3a31; --warnbg: #3a2f18; --badbg: #3d2220;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; }
+body { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+header { padding: 16px; border-bottom: 1px solid var(--line); background: var(--surface); }
+header h1 { margin: 0; font-size: 1.15rem; }
+header p { margin: 4px 0 0; color: var(--muted); font-size: .85rem; }
+nav { display: flex; gap: 6px; overflow-x: auto; padding: 10px 12px; background: var(--surface);
+  border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+nav button { flex: 0 0 auto; border: 1px solid var(--line); background: transparent; color: var(--text);
+  padding: 8px 12px; border-radius: 999px; font-size: .9rem; cursor: pointer; }
+nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+main { max-width: 720px; margin: 0 auto; padding: 16px; }
+section { display: none; }
+section.active { display: block; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.card h2 { margin: 0 0 10px; font-size: 1rem; }
+label { display: block; font-size: .85rem; color: var(--muted); margin: 10px 0 4px; }
+input, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--text); font-size: 1rem; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+button.primary { margin-top: 12px; width: 100%; padding: 12px; border: 0; border-radius: 10px;
+  background: var(--accent); color: #fff; font-size: 1rem; cursor: pointer; }
+button.small { padding: 6px 10px; border: 1px solid var(--line); background: transparent; color: var(--text);
+  border-radius: 8px; cursor: pointer; font-size: .85rem; }
+.stat { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.stat:last-child { border-bottom: 0; }
+.stat span:first-child { color: var(--muted); }
+.stat strong { font-size: 1.1rem; }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+.b-ok { background: var(--chip); color: var(--ok); }
+.b-warn { background: var(--warnbg); color: var(--warn); }
+.b-bad { background: var(--badbg); color: var(--bad); }
+.item { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; }
+.item .meta { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+.note { font-size: .85rem; color: var(--muted); margin-top: 10px; line-height: 1.45; }
+.alert { font-size: .85rem; color: var(--bad); margin-top: 6px; }
+.empty { color: var(--muted); font-style: italic; }
+article.rule { border-left: 3px solid var(--accent); padding: 4px 0 4px 12px; margin: 12px 0; }
+article.rule h3 { margin: 0 0 4px; font-size: .95rem; }
+article.rule p { margin: 0; font-size: .92rem; line-height: 1.45; }
+.sub { font-size: .9rem; font-weight: 600; margin: 18px 0 8px; }
+footer { text-align: center; color: var(--muted); font-size: .78rem; padding: 20px 16px 30px; }
+#printArea { display: none; }
+@media print {
+  body * { visibility: hidden; }
+  #printArea, #printArea * { visibility: visible; }
+  #printArea { display: block; position: absolute; left: 0; top: 0; width: 100%; padding: 16px; background: #fff; color: #000; }
+  #printArea pre { white-space: pre-wrap; font-family: system-ui, sans-serif; font-size: 12pt; margin: 0; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Fijos y fijos discontinuos · Hostelería Baleares</h1>
+  <p>Garantía, llamamientos, vacaciones y festivos en un solo sitio</p>
+  <p class="note" id="estadoGuardado" style="margin-top:6px"></p>
+</header>
+
+<nav>
+  <button class="active" data-tab="estado">Mi estado</button>
+  <button data-tab="llamamientos" id="tabLlam">Llamamientos</button>
+  <button data-tab="vacaciones">Vacaciones y festivos</button>
+  <button data-tab="convenio">Convenio</button>
+</nav>
+
+<main>
+
+  <div id="alertaPlazos" class="card" hidden style="border-color:var(--warn)"></div>
+
+  <!-- ESTADO -->
+  <section id="estado" class="active">
+    <div class="card">
+      <h2>Datos de tu contrato</h2>
+      <label for="tipoContrato">Tipo de contrato</label>
+      <select id="tipoContrato">
+        <option value="discontinuo">Fijo discontinuo</option>
+        <option value="fijo">Fijo ordinario (jornada continua)</option>
+      </select>
+      <label for="jornada">Tipo de jornada</label>
+      <select id="jornada">
+        <option value="completa">Jornada completa</option>
+        <option value="media">Media jornada (parcial)</option>
+      </select>
+      <p class="note" id="notaJornada">Jornada completa: los cálculos se hacen sin ajustes por jornada.</p>
+      <label for="inicio">Fecha de inicio del contrato</label>
+      <input type="date" id="inicio">
+      <label for="fin">Fecha de fin (solo si tu contrato ha terminado; déjala vacía si sigue activo)</label>
+      <input type="date" id="fin">
+      <div id="garantiaBox">
+      <div class="row">
+        <div>
+          <label for="periodos">Periodos anuales consecutivos completados</label>
+          <input type="number" id="periodos" min="0" max="30" value="0">
+        </div>
+        <div>
+          <label for="horas">Media de ocupación en los tres primeros años (meses)</label>
+          <input type="number" id="horas" min="0" max="12" step="0.5" placeholder="Ej.: 7">
+        </div>
+      </div>
+      <label>
+        <input type="checkbox" id="actividad" style="width:auto;margin-right:6px">
+        La empresa tiene actividad ordinaria estable y continuada de más de seis meses al año
+      </label>
+      <button class="primary" id="calcular">Calcular mi situación</button>
+      </div>
+    </div>
+
+    <div class="card" id="resultado" hidden>
+      <h2>Tu garantía de ocupación</h2>
+      <div id="resultadoBody"></div>
+      <p class="note">Cálculo orientativo según los artículos 8.2 y 8.3 del convenio. Confirma siempre los datos con tu representación legal o con un asesor.</p>
+    </div>
+    <div class="card">
+      <h2>Salario y liquidación</h2>
+      <label for="salarioAnual">Salario bruto anual a jornada completa (€)</label>
+      <input type="number" id="salarioAnual" min="0" step="0.01" placeholder="Ej.: 18000">
+      <label for="netoMensual">¿No sabes el bruto? Indica tu salario neto mensual (€)</label>
+      <input type="number" id="netoMensual" min="0" step="0.01" placeholder="Ej.: 1400">
+      <button class="small" id="btnBruto" style="margin-top:8px;width:100%">Calcular el bruto a partir del neto</button>
+      <p class="note">Para hacerlo también necesitas tu retención de IRPF y las cotizaciones (abajo). El resultado es aproximado.</p>
+      <div class="row">
+        <div>
+          <label for="pagas">Número de pagas al año</label>
+          <input type="number" id="pagas" min="12" max="15" value="14">
+        </div>
+        <div id="blkHoras">
+          <label for="horasSem">Horas semanales de tu contrato (media jornada)</label>
+          <input type="number" id="horasSem" min="0" max="60" step="0.5" placeholder="Ej.: 20">
+        </div>
+      </div>
+      <label for="horasCompletas">Horas semanales de la jornada completa</label>
+      <input type="number" id="horasCompletas" min="1" max="60" value="40">
+      <label for="fCese">Fecha de cese prevista (opcional)</label>
+      <input type="date" id="fCese">
+      <div class="row">
+        <div>
+          <label for="ssPct">Cotizaciones Seguridad Social (%)</label>
+          <input type="number" id="ssPct" min="0" max="20" step="0.01" value="6.5">
+        </div>
+        <div>
+          <label for="irpfPct">Retención de IRPF (%)</label>
+          <input type="number" id="irpfPct" min="0" max="50" step="0.01" placeholder="Según tu nómina">
+        </div>
+      </div>
+      <p class="note">Las cotizaciones por defecto son orientativas: revisa el porcentaje en tu nómina. El neto solo se calcula si indicas la retención de IRPF de tu nómina.</p>
+      <button class="primary" id="btnSal">Calcular salario y liquidación</button>
+      <div id="resultSal" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- LLAMAMIENTOS -->
+  <section id="llamamientos">
+    <div class="card">
+      <h2>Registrar un llamamiento</h2>
+      <div class="row">
+        <div>
+          <label for="fCom">Fecha en que recibiste el aviso</label>
+          <input type="date" id="fCom">
+        </div>
+        <div>
+          <label for="fInc">Fecha de incorporación</label>
+          <input type="date" id="fInc">
+        </div>
+      </div>
+      <label for="tipo">Tipo de llamamiento</label>
+      <select id="tipo">
+        <option value="garantizado">Periodo de ocupación garantizado (10 días naturales de aviso)</option>
+        <option value="otro">Resto de llamamientos (5 días de aviso)</option>
+      </select>
+      <label for="formaAviso">Cómo te lo comunicaron</label>
+      <select id="formaAviso">
+        <option value="escrito">Por escrito</option>
+        <option value="otra">De otra forma (no cumple el convenio)</option>
+      </select>
+      <button class="primary" id="guardarLlamamiento">Guardar llamamiento</button>
+    </div>
+    <div class="card">
+      <h2>Mis llamamientos</h2>
+      <div id="listaLlamamientos"><p class="empty">Todavía no has registrado ningún llamamiento.</p></div>
+    </div>
+  </section>
+
+  <!-- VACACIONES Y FESTIVOS -->
+  <section id="vacaciones">
+
+    <div class="card">
+      <h2>Vacaciones que te tocan</h2>
+      <label for="vacAnio">Año</label>
+      <input type="number" id="vacAnio" min="2000" max="2100" value="2026">
+      <div id="blkFijoVac" hidden>
+        <label for="diasVacFijo">Días de vacaciones al año según tu contrato o convenio</label>
+        <input type="number" id="diasVacFijo" min="1" max="60" value="30">
+      </div>
+      <div id="vacCalc"></div>
+      <p class="note">Fijo discontinuo: el convenio fija 35 días naturales al año (art. 17). Fijo ordinario: usa los días de tu contrato o convenio (mínimo legal 30 días naturales). Si no has completado un año de servicio, te corresponde la parte proporcional al tiempo trabajado. Los días de vacaciones incluyen los descansos semanales.</p>
+    </div>
+
+    <div class="card">
+      <h2>Vacaciones que has disfrutado</h2>
+      <div class="row">
+        <div>
+          <label for="vdIni">Primer día</label>
+          <input type="date" id="vdIni">
+        </div>
+        <div>
+          <label for="vdFin">Último día</label>
+          <input type="date" id="vdFin">
+        </div>
+      </div>
+      <button class="primary" id="addVac">Añadir periodo</button>
+      <div id="listaVac" style="margin-top:6px"><p class="empty">No has registrado vacaciones disfrutadas.</p></div>
+    </div>
+
+    <div class="card">
+      <h2>Festivos trabajados</h2>
+      <label for="fTrabAtajo">Elige un festivo oficial de 2026 (opcional)</label>
+      <select id="fTrabAtajo"><option value="">Elige un festivo o escribe la fecha abajo</option></select>
+      <label for="fLocalFecha">Festivos locales de tu municipio en 2026</label>
+      <div class="row">
+        <div>
+          <input type="date" id="fLocalFecha">
+        </div>
+        <div>
+          <button class="small" id="addLocal" style="width:100%;padding:10px">Añadir festivo local</button>
+        </div>
+      </div>
+      <p class="note">Añade cada festivo local según el calendario oficial de tu municipio.</p>
+      <div id="listaLocales" style="margin-top:6px"></div>
+      <div class="row">
+        <div>
+          <label for="fTrabFecha">Día festivo trabajado</label>
+          <input type="date" id="fTrabFecha">
+        </div>
+        <div>
+          <label for="fTrabEstado">Qué ha pasado con él</label>
+          <select id="fTrabEstado">
+            <option value="pendiente">Pendiente de compensar</option>
+            <option value="acumulado">Acumulado a vacaciones</option>
+            <option value="disfrutado">Disfrutado en otro día</option>
+            <option value="pagado">Pagado</option>
+          </select>
+        </div>
+      </div>
+      <label for="fTrabDisf">Día en que lo disfrutaste (solo si aplica)</label>
+      <input type="date" id="fTrabDisf">
+      <button class="primary" id="addFest">Añadir festivo</button>
+      <div id="listaFest" style="margin-top:6px"><p class="empty">No has registrado festivos trabajados.</p></div>
+    </div>
+
+    <div class="card">
+      <h2>Resumen del año</h2>
+      <div id="resumenVac"></div>
+      <button class="primary" id="btnPdfFile">Descargar resumen en PDF (.pdf)</button>
+      <button class="small" id="btnTxt" style="margin-top:8px;width:100%">Descargar resumen en texto (.txt)</button>
+      <button class="small" id="btnPdf" style="margin-top:8px;width:100%">Imprimir o guardar como PDF</button>
+      <p class="note">Los festivos que caen dentro de tus vacaciones no cuentan como disfrutados (art. 18). Un festivo que coincide con tu descanso semanal se considera trabajado.</p>
+    </div>
+  </section>
+
+  <!-- CONVENIO -->
+  <section id="convenio">
+    <div class="card" id="convFijo" hidden>
+      <h2>Contrato fijo ordinario</h2>
+      <article class="rule">
+        <h3>Vacaciones</h3>
+        <p>La ley fija un mínimo de 30 días naturales al año. Tu contrato o el convenio aplicable pueden fijar más; indícalos en «Vacaciones y festivos».</p>
+      </article>
+      <article class="rule">
+        <h3>Festivos</h3>
+        <p>Las fiestas laborales no pueden superar 14 al año, de las cuales 2 pueden ser locales. Si trabajas un festivo, mira cómo se compensa en tu contrato o convenio.</p>
+      </article>
+      <article class="rule">
+        <h3>Jornada</h3>
+        <p>La jornada máxima es de 40 horas semanales de media en el año, salvo que el convenio fije otra cosa.</p>
+      </article>
+      <article class="rule">
+        <h3>Liquidación al cese</h3>
+        <p>Al terminar el contrato debes recibir el finiquito con el salario pendiente y la parte proporcional de vacaciones y pagas extra no disfrutadas.</p>
+      </article>
+      <p class="note">Resumen orientativo basado en el Estatuto de los Trabajadores. Los detalles del convenio de Hostelería de Baleares pueden cambiar estas reglas: confírmalos con tu representación legal o un asesor.</p>
+    </div>
+    <div id="convDisc">
+    <div class="card">
+      <h2>Lo esencial del artículo 8 (fijos discontinuos)</h2>
+      <article class="rule">
+        <h3>Garantía de ocupación</h3>
+        <p>Tras tres periodos anuales consecutivos con al menos seis meses al año en la misma empresa, tienes garantizados seis meses de ocupación. En empresas con actividad estable de más de seis meses, puede llegar hasta nueve meses.</p>
+      </article>
+      <article class="rule">
+        <h3>Aviso de llamamiento</h3>
+        <p>Si es periodo garantizado, la empresa debe llamarte por escrito con al menos 10 días naturales de antelación. En el resto de casos, 5 días.</p>
+      </article>
+      <article class="rule">
+        <h3>Respuesta</h3>
+        <p>Tienes 72 horas desde la recepción para contestar por escrito. Si no contestas, la empresa puede llamar a otra persona, pero tu posición en la lista se mantiene.</p>
+      </article>
+      <article class="rule">
+        <h3>Vacaciones</h3>
+        <p>35 días naturales al año (art. 17). Las fechas se conocen con al menos dos meses de antelación. Pueden fraccionarse por acuerdo.</p>
+      </article>
+      <article class="rule">
+        <h3>Festivos trabajados</h3>
+        <p>Se pueden acumular a las vacaciones, disfrutar en otro momento o cambiar por otro día junto al descanso semanal, siempre de común acuerdo. Sin acuerdo, se acumulan a las vacaciones (art. 18).</p>
+      </article>
+      <article class="rule">
+        <h3>Liquidación al cese</h3>
+        <p>La empresa debe entregarte la propuesta del documento de liquidación con cinco días de antelación al cese, en el modelo del anexo V.</p>
+      </article>
+    </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>Herramienta orientativa. No sustituye al convenio, al acta ni al asesoramiento profesional.</footer>
+
+<div id="printArea"><pre id="printBody"></pre></div>
+
+<script>
+// Estado de la app (se guarda en la base de datos privada de cada persona)
+// Festivos de ámbito general de Illes Balears 2026 (calendario laboral oficial)
+const FESTIVOS_GENERALES_2026 = [
+  { fecha: "2026-01-01", texto: "1 de enero · Año Nuevo" },
+  { fecha: "2026-01-06", texto: "6 de enero · Epifanía del Señor" },
+  { fecha: "2026-03-02", texto: "2 de marzo · Día siguiente al Día de les Illes Balears" },
+  { fecha: "2026-04-02", texto: "2 de abril · Jueves Santo" },
+  { fecha: "2026-04-03", texto: "3 de abril · Viernes Santo" },
+  { fecha: "2026-04-06", texto: "6 de abril · Lunes de Pascua" },
+  { fecha: "2026-05-01", texto: "1 de mayo · Día del Trabajador" },
+  { fecha: "2026-08-15", texto: "15 de agosto · Asunción de la Virgen" },
+  { fecha: "2026-10-12", texto: "12 de octubre · Fiesta Nacional" },
+  { fecha: "2026-12-08", texto: "8 de diciembre · Inmaculada Concepción" },
+  { fecha: "2026-12-25", texto: "25 de diciembre · Día de Navidad" },
+  { fecha: "2026-12-26", texto: "26 de diciembre · Segunda fiesta de Navidad" }
+];
+const estado = { llamamientos: [], vacaciones: [], festivos: [], locales: [] };
+let storageReady = false, lastSaved = null, saveTimer = null, saveChain = Promise.resolve();
+const STORE_KEY = "fijos-discontinuos-v1";
+
+const $ = (id) => document.getElementById(id);
+const DIA = 24 * 60 * 60 * 1000;
+function diasAnuales() { return tipo() === "fijo" ? (parseInt($("diasVacFijo").value, 10) || 30) : 35; }
+
+function fmt(d) {
+  return d.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
+}
+function parseFecha(v) {
+  if (!v) return null;
+  const [y, m, d] = v.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+function diasEntre(a, b) { return Math.round((b - a) / DIA); }
+function diasNaturales(a, b) { return diasEntre(a, b) + 1; }
+function enRango(f, a, b) { return f >= a && f <= b; }
+function tipo() { return $("tipoContrato").value; }
+function actualizarJornada() {
+  $("blkHoras").hidden = $("jornada").value !== "media";
+  $("notaJornada").textContent = $("jornada").value === "media"
+    ? "Media jornada: la ley mantiene los días de vacaciones, pero el salario, las horas y la liquidación se calculan según tu jornada."
+    : "Jornada completa: los cálculos se hacen sin ajustes por jornada.";
+}
+function aplicarTipo() {
+  const fijo = tipo() === "fijo";
+  $("garantiaBox").hidden = fijo;
+  $("resultado").hidden = true;
+  $("tabLlam").hidden = fijo;
+  $("blkFijoVac").hidden = !fijo;
+  $("convDisc").hidden = fijo;
+  $("convFijo").hidden = !fijo;
+  $("blkHoras").hidden = $("jornada").value !== "media";
+  if (fijo && $("llamamientos").classList.contains("active")) {
+    document.querySelector('nav button[data-tab="estado"]').click();
+  }
+  renderVacaciones();
+}
+
+// Pestañas
+document.querySelectorAll("nav button").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav button").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll("section").forEach((s) => s.classList.remove("active"));
+    btn.classList.add("active");
+    $(btn.dataset.tab).classList.add("active");
+    renderVacaciones();
+  });
+});
+
+// ESTADO
+$("calcular").addEventListener("click", () => {
+  const periodos = parseInt($("periodos").value, 10) || 0;
+  const horas = parseFloat($("horas").value);
+  const estable = $("actividad").checked;
+  let html = "";
+
+  if (periodos < 3) {
+    html += `<div class="stat"><span>Estado</span><span class="badge b-warn">Sin garantía todavía</span></div>`;
+    html += `<div class="stat"><span>Periodos que te faltan</span><strong>${3 - periodos}</strong></div>`;
+    html += `<p class="note">La garantía de seis meses se consolida tras tres periodos anuales consecutivos con al menos seis meses de ocupación al año.</p>`;
+  } else {
+    const cumpleMinimo = !isNaN(horas) && horas >= 6;
+    html += `<div class="stat"><span>Estado</span><span class="badge ${cumpleMinimo ? "b-ok" : "b-bad"}">${cumpleMinimo ? "Garantía de 6 meses" : "Revisa tu media"}</span></div>`;
+    html += `<div class="stat"><span>Ocupación garantizada mínima</span><strong>6 meses al año</strong></div>`;
+    if (estable && cumpleMinimo) {
+      html += `<div class="stat"><span>Posible ampliación</span><strong>Hasta 9 meses</strong></div>`;
+      html += `<p class="note">La ampliación exige que hayas trabajado de forma efectiva y continuada en esos tres periodos. La empresa puede revertirla en los supuestos del convenio, avisando con 10 días naturales.</p>`;
+    }
+    if (!cumpleMinimo) {
+      html += `<p class="note">Si tu media de los tres primeros años fue inferior a seis meses, el artículo 8.2.3 te garantiza al menos esa media a partir del cuarto año.</p>`;
+    }
+  }
+  $("resultadoBody").innerHTML = html;
+  $("resultado").hidden = false;
+});
+
+// LLAMAMIENTOS
+function estadoLlamamiento(l) {
+  const ahora = new Date(); ahora.setHours(0, 0, 0, 0);
+  const limiteRespuesta = new Date(l.com.getTime() + 3 * DIA);
+  const avisoMinimo = l.tipo === "garantizado" ? 10 : 5;
+  const avisoDias = diasEntre(l.com, l.inc);
+  const avisoCumple = l.forma === "escrito" && avisoDias >= avisoMinimo;
+  const quedan = diasEntre(ahora, limiteRespuesta);
+  const alertas = [];
+  if (!avisoCumple) {
+    alertas.push(l.forma !== "escrito"
+      ? "El aviso no fue por escrito: el convenio lo exige."
+      : `El aviso fue de ${avisoDias} días; el mínimo es ${avisoMinimo} días naturales.`);
+  }
+  let badge = "b-ok", texto = "Aviso correcto";
+  if (!avisoCumple) { badge = "b-bad"; texto = "Aviso irregular"; }
+  if (l.respondido) { texto = "Respondido"; badge = "b-ok"; }
+  else if (quedan < 0) { badge = "b-bad"; texto = "Plazo de respuesta vencido"; }
+  else if (quedan <= 1) { badge = "b-warn"; texto = "Responde ya"; }
+  return { limiteRespuesta, avisoDias, avisoMinimo, alertas, badge, texto };
+}
+
+function renderLlamamientos() {
+  renderAlertas();
+  const cont = $("listaLlamamientos");
+  if (!estado.llamamientos.length) {
+    cont.innerHTML = `<p class="empty">Todavía no has registrado ningún llamamiento.</p>`;
+    return;
+  }
+  cont.innerHTML = estado.llamamientos.map((l, i) => {
+    const e = estadoLlamamiento(l);
+    return `
+      <div class="item">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+          <strong>Incorporación: ${fmt(l.inc)}</strong>
+          <span class="badge ${e.badge}">${e.texto}</span>
+        </div>
+        <div class="meta">Aviso recibido: ${fmt(l.com)} · Antelación: ${e.avisoDias} días (mínimo ${e.avisoMinimo})</div>
+        <div class="meta">Plazo para responder por escrito: ${fmt(e.limiteRespuesta)}</div>
+        ${e.alertas.map((a) => `<div class="alert">⚠ ${a}</div>`).join("")}
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          ${l.respondido ? "" : `<button class="small" data-resp="${i}">Marcar respondido</button>`}
+          <button class="small" data-del="${i}">Eliminar</button>
+        </div>
+      </div>`;
+  }).join("");
+
+  cont.querySelectorAll("[data-resp]").forEach((b) => b.addEventListener("click", () => {
+    estado.llamamientos[+b.dataset.resp].respondido = true; renderLlamamientos();
+  }));
+  cont.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => {
+    estado.llamamientos.splice(+b.dataset.del, 1); renderLlamamientos();
+  }));
+  save();
+}
+
+$("guardarLlamamiento").addEventListener("click", () => {
+  const com = parseFecha($("fCom").value);
+  const inc = parseFecha($("fInc").value);
+  if (!com || !inc) { alert("Indica la fecha del aviso y la de incorporación."); return; }
+  if (inc < com) { alert("La fecha de incorporación debe ser posterior al aviso."); return; }
+  estado.llamamientos.unshift({ com, inc, tipo: $("tipo").value, forma: $("formaAviso").value, respondido: false });
+  ["fCom", "fInc"].forEach((id) => $(id).value = "");
+  renderLlamamientos();
+});
+
+// VACACIONES: derecho del año
+function derechoVacaciones(anio) {
+  const inicio = parseFecha($("inicio").value);
+  const contratoFin = parseFecha($("fin").value);
+  const ini = new Date(anio, 0, 1);
+  const finAnio = new Date(anio, 11, 31);
+  if (!inicio) return { total: diasAnuales(), nota: "Introduce tu fecha de inicio en «Mi estado» para calcular la parte proporcional." };
+  const fin = contratoFin && contratoFin < finAnio ? contratoFin : finAnio;
+  const desde = inicio > ini ? inicio : ini;
+  if (fin < desde) {
+    const termino = contratoFin && contratoFin < ini;
+    return { total: 0, nota: termino ? "Tu contrato había terminado antes de este año." : "Todavía no habías empezado en este año." };
+  }
+  if (desde.getTime() === ini.getTime() && fin.getTime() === finAnio.getTime()) return { total: diasAnuales(), nota: "Año completo de servicio." };
+  const dias = diasNaturales(desde, fin);
+  const total = Math.round((diasAnuales() * dias / 365) * 10) / 10;
+  return { total, nota: `Parte proporcional: ${dias} días de servicio en el año${contratoFin ? " (hasta la fecha de fin de contrato)" : ""}.` };
+}
+
+function renderVacaciones() {
+  renderLocales();
+  const anio = parseInt($("vacAnio").value, 10) || 2026;
+  const derecho = derechoVacaciones(anio);
+
+  // Vacaciones disfrutadas en ese año
+  const periodos = estado.vacaciones.filter((p) => p.ini.getFullYear() === anio);
+  const disfrutadas = periodos.reduce((s, p) => s + diasNaturales(p.ini, p.fin), 0);
+
+  // Festivos: acumulados a vacaciones (cada uno suma 1 día) y disfrutados fuera de vacaciones
+  const festAnio = estado.festivos.filter((f) => f.fecha.getFullYear() === anio);
+  const acumulados = festAnio.filter((f) => f.estado === "acumulado").length;
+  const festDisfrutados = festAnio.filter((f) => {
+    if (f.estado !== "disfrutado" || !f.disf) return false;
+    return !estado.vacaciones.some((p) => enRango(f.disf, p.ini, p.fin));
+  }).length;
+  const festTrabajados = festAnio.length;
+  const festPendientes = festAnio.filter((f) => f.estado === "pendiente").length;
+  const festPagados = festAnio.filter((f) => f.estado === "pagado").length;
+
+  const totalDerecho = derecho.total + acumulados;
+  const pendientes = Math.max(totalDerecho - disfrutadas, 0);
+  const excedido = disfrutadas > totalDerecho;
+
+  $("vacCalc").innerHTML = `
+    <div class="stat"><span>Vacaciones que te corresponden</span><strong>${derecho.total} días</strong></div>
+    <div class="stat"><span>Más festivos acumulados a vacaciones</span><strong>+${acumulados}</strong></div>
+    <div class="stat"><span>Total de días de vacaciones</span><strong>${totalDerecho} días</strong></div>
+    <p class="note">${derecho.nota}</p>`;
+
+  $("listaVac").innerHTML = periodos.length
+    ? periodos.map((p, i) => `
+        <div class="item">
+          <strong>${fmt(p.ini)} → ${fmt(p.fin)}</strong>
+          <div class="meta">${diasNaturales(p.ini, p.fin)} días naturales</div>
+          <div style="margin-top:8px"><button class="small" data-delvac="${estado.vacaciones.indexOf(p)}">Eliminar</button></div>
+        </div>`).join("")
+    : `<p class="empty">No has registrado vacaciones disfrutadas en ${anio}.</p>`;
+
+  document.querySelectorAll("[data-delvac]").forEach((b) => b.addEventListener("click", () => {
+    estado.vacaciones.splice(+b.dataset.delvac, 1); renderVacaciones();
+  }));
+
+  $("listaFest").innerHTML = festAnio.length
+    ? festAnio.map((f) => {
+        const idx = estado.festivos.indexOf(f);
+        const dentroVac = f.estado === "disfrutado" && f.disf && estado.vacaciones.some((p) => enRango(f.disf, p.ini, p.fin));
+        const etiqueta = { pendiente: ["b-warn", "Pendiente"], acumulado: ["b-ok", "Acumulado a vacaciones"], disfrutado: ["b-ok", "Disfrutado"], pagado: ["b-ok", "Pagado"] }[f.estado];
+        return `
+          <div class="item">
+            <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+              <strong>${fmt(f.fecha)}</strong>
+              <span class="badge ${etiqueta[0]}">${etiqueta[1]}</span>
+            </div>
+            ${f.estado === "disfrutado" && f.disf ? `<div class="meta">Disfrutado el ${fmt(f.disf)}</div>` : ""}            ${dentroVac ? `<div class="alert">⚠ Ese día cae dentro de tus vacaciones: no cuenta como disfrutado.</div>` : ""}
+            <div style="margin-top:8px"><button class="small" data-delfest="${idx}">Eliminar</button></div>
+          </div>`;
+      }).join("")
+    : `<p class="empty">No has registrado festivos trabajados en ${anio}.</p>`;
+
+  document.querySelectorAll("[data-delfest]").forEach((b) => b.addEventListener("click", () => {
+    estado.festivos.splice(+b.dataset.delfest, 1); renderVacaciones();
+  }));
+
+  $("resumenVac").innerHTML = `
+    <div class="stat"><span>Festivos del año (generales + locales)</span><strong>${FESTIVOS_GENERALES_2026.length + estado.locales.length}</strong></div>
+    <div class="stat"><span>Festivos trabajados en ${anio}</span><strong>${festTrabajados}</strong></div>
+    <div class="stat"><span>Festivos trabajados pagados</span><strong>${festPagados}</strong></div>    <div class="stat"><span>Pendientes de compensar</span><strong>${festPendientes}</strong></div>
+    <div class="stat"><span>Compensados por días disfrutados</span><strong>${festDisfrutados}</strong></div>
+    <div class="stat"><span>Acumulados a vacaciones</span><strong>${acumulados}</strong></div>
+    <div class="stat"><span>Vacaciones pendientes de disfrutar</span><strong>${pendientes} días</strong></div>
+    ${excedido ? `<p class="alert">Has disfrutado más días de vacaciones de los que te corresponden. Revísalo con tu representación legal.</p>` : ""}`;
+  save();
+}
+
+$("addVac").addEventListener("click", () => {
+  const ini = parseFecha($("vdIni").value);
+  const fin = parseFecha($("vdFin").value);
+  if (!ini || !fin) { alert("Indica el primer y el último día de vacaciones."); return; }
+  if (fin < ini) { alert("El último día debe ser posterior al primero."); return; }
+  estado.vacaciones.push({ ini, fin });
+  estado.vacaciones.sort((a, b) => a.ini - b.ini);
+  ["vdIni", "vdFin"].forEach((id) => $(id).value = "");
+  renderVacaciones();
+});
+
+$("addFest").addEventListener("click", () => {
+  const fecha = parseFecha($("fTrabFecha").value);
+  const estadoF = $("fTrabEstado").value;
+  const disf = parseFecha($("fTrabDisf").value);
+  if (!fecha) { alert("Indica el día festivo trabajado."); return; }
+  if (estadoF === "disfrutado" && !disf) { alert("Indica el día en que lo disfrutaste."); return; }
+  estado.festivos.push({ fecha, estado: estadoF, disf: estadoF === "disfrutado" ? disf : null });
+  estado.festivos.sort((a, b) => a.fecha - b.fecha);
+  ["fTrabFecha", "fTrabDisf"].forEach((id) => $(id).value = "");
+  renderVacaciones();
+});
+
+$("vacAnio").addEventListener("input", renderVacaciones);
+$("inicio").addEventListener("change", renderVacaciones);
+$("fin").addEventListener("change", renderVacaciones);
+$("tipoContrato").addEventListener("change", () => { aplicarTipo(); renderAlertas(); });
+$("diasVacFijo").addEventListener("input", renderVacaciones);
+$("jornada").addEventListener("change", actualizarJornada);
+
+renderVacaciones();
+const selFest = $("fTrabAtajo");
+selFest.addEventListener("change", () => { if (selFest.value) $("fTrabFecha").value = selFest.value; });
+renderLlamamientos();
+aplicarTipo();
+
+// PERSISTENCIA: cada persona guarda sus datos en su propio documento privado (data/users/<id>/state)
+function ymd(d) {
+  return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : null;
+}
+function toState() {
+  return {
+    v: 1,
+    form: {
+      tipoContrato: $("tipoContrato").value, jornada: $("jornada").value,
+      inicio: $("inicio").value, fin: $("fin").value,
+      periodos: $("periodos").value, horas: $("horas").value,
+      actividad: $("actividad").checked, diasVacFijo: $("diasVacFijo").value,
+      vacAnio: $("vacAnio").value,
+      salarioAnual: $("salarioAnual").value, pagas: $("pagas").value, horasSem: $("horasSem").value,
+      horasCompletas: $("horasCompletas").value, fCese: $("fCese").value,
+      ssPct: $("ssPct").value, irpfPct: $("irpfPct").value, netoMensual: $("netoMensual").value
+    },
+    llamamientos: estado.llamamientos.map((l) => ({ com: ymd(l.com), inc: ymd(l.inc), tipo: l.tipo, forma: l.forma, respondido: l.respondido })),
+    vacaciones: estado.vacaciones.map((p) => ({ ini: ymd(p.ini), fin: ymd(p.fin) })),
+    festivos: estado.festivos.map((f) => ({ fecha: ymd(f.fecha), estado: f.estado, disf: ymd(f.disf) })),
+    locales: estado.locales.map((d) => ymd(d))
+  };
+}
+function applyState(s) {
+  if (!s || s.v !== 1) return;
+  const f = s.form || {};
+  ["tipoContrato", "jornada", "inicio", "fin", "periodos", "horas", "diasVacFijo", "vacAnio", "salarioAnual", "pagas", "horasSem", "horasCompletas", "fCese", "ssPct", "irpfPct", "netoMensual"]
+    .forEach((id) => { if (f[id] !== undefined && f[id] !== null) $(id).value = f[id]; });
+  if (typeof f.actividad === "boolean") $("actividad").checked = f.actividad;
+  estado.llamamientos = (s.llamamientos || []).map((l) => ({ com: parseFecha(l.com), inc: parseFecha(l.inc), tipo: l.tipo, forma: l.forma, respondido: !!l.respondido }));
+  estado.vacaciones = (s.vacaciones || []).map((p) => ({ ini: parseFecha(p.ini), fin: parseFecha(p.fin) }));
+  estado.festivos = (s.festivos || []).map((x) => ({ fecha: parseFecha(x.fecha), estado: x.estado, disf: parseFecha(x.disf) }));
+  estado.locales = (s.locales || []).map((d) => parseFecha(d));
+}
+function setStatus(t) { const el = $("estadoGuardado"); if (el) el.textContent = t; }
+function save() {
+  if (!storageReady) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const json = JSON.stringify(toState());
+    if (json === lastSaved) return; // solo se escribe si hay cambios
+    lastSaved = json;
+    setStatus("Guardando…");
+    saveChain = saveChain
+      .then(() => { localStorage.setItem(STORE_KEY, json); })
+      .then(() => setStatus("Datos guardados"))
+      .catch((e) => { lastSaved = null; setStatus("No se ha podido guardar. Revisa tu conexión."); console.warn(e); });
+  }, 500);
+}
+async function initDb() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) applyState(JSON.parse(raw));
+    storageReady = true;
+    lastSaved = JSON.stringify(toState());
+    aplicarTipo();
+    renderLlamamientos();
+    setStatus("Tus datos se guardan automáticamente en este móvil.");
+  } catch (e) {
+    console.warn(e);
+    storageReady = false;
+    setStatus("No se pueden guardar datos en este navegador.");
+  }
+}
+document.querySelectorAll("input, select").forEach((el) => {
+  el.addEventListener("change", save);
+  el.addEventListener("input", save);
+});
+// RESUMEN: texto para descargar o imprimir como PDF
+function buildResumen() {
+  const anio = parseInt($("vacAnio").value, 10) || 2026;
+  const derecho = derechoVacaciones(anio);
+  const periodos = estado.vacaciones.filter((p) => p.ini.getFullYear() === anio);
+  const disfr = periodos.reduce((s, p) => s + diasNaturales(p.ini, p.fin), 0);
+  const festAnio = estado.festivos.filter((f) => f.fecha.getFullYear() === anio);
+  const acum = festAnio.filter((f) => f.estado === "acumulado").length;
+  const total = derecho.total + acum;
+  const etiquetas = { pendiente: "Pendiente de compensar", acumulado: "Acumulado a vacaciones", disfrutado: "Disfrutado", pagado: "Pagado" };
+  const L = [];
+  const contrato = $("tipoContrato").selectedOptions[0].textContent;
+  const jornada = $("jornada").selectedOptions[0].textContent;
+  L.push(`Resumen ${anio} · ${contrato} · ${jornada}`);
+  L.push(`Inicio del contrato: ${$("inicio").value ? fmt(parseFecha($("inicio").value)) : "sin indicar"}`);
+  L.push(`Fin del contrato: ${$("fin").value ? fmt(parseFecha($("fin").value)) : "sigue activo"}`);
+  L.push("");
+  L.push("VACACIONES");
+  L.push(`Días que te corresponden: ${derecho.total}`);
+  L.push(`Festivos acumulados a vacaciones: ${acum}`);
+  L.push(`Total de días: ${total}`);
+  L.push(`Disfrutados: ${disfr}`);
+  L.push(`Pendientes: ${Math.max(total - disfr, 0)}`);
+  L.push("Periodos disfrutados:");
+  if (periodos.length) periodos.forEach((p) => L.push(`  ${fmt(p.ini)} → ${fmt(p.fin)} (${diasNaturales(p.ini, p.fin)} días)`));
+  else L.push("  Ninguno registrado");
+  L.push("");
+  L.push("FESTIVOS TRABAJADOS");
+  if (festAnio.length) festAnio.forEach((f) => {
+    const extra = f.estado === "disfrutado" && f.disf ? ` (disfrutado el ${fmt(f.disf)})` : "";
+    L.push(`  ${fmt(f.fecha)}: ${etiquetas[f.estado]}${extra}`);
+  });
+  else L.push("  Ninguno registrado");
+  if (tipo() === "discontinuo") {
+    L.push("");
+    L.push("GARANTÍA DE OCUPACIÓN");
+    L.push(`Periodos anuales completados: ${$("periodos").value || 0}`);
+    L.push(`Media de ocupación en los tres primeros años (meses): ${$("horas").value || "sin indicar"}`);
+    L.push("");
+    L.push("LLAMAMIENTOS");
+    if (estado.llamamientos.length) estado.llamamientos.forEach((l) => {
+      L.push(`  Incorporación ${fmt(l.inc)} · aviso recibido ${fmt(l.com)} · ${estadoLlamamiento(l).texto}`);
+    });
+    else L.push("  Ninguno registrado");
+  }
+  L.push("");
+  L.push("Documento orientativo generado con la app. Confirma los datos con tu representación legal o con un asesor.");
+  return L.join("\n");
+}
+$("btnPdf").addEventListener("click", () => {
+  $("printBody").textContent = buildResumen();
+  window.print();
+});
+function descargar(blob, nombre) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+$("btnPdfFile").addEventListener("click", () => {
+  try {
+    if (!window.jspdf) { alert("El generador de PDF no se ha cargado. Revisa tu conexión o usa «Imprimir o guardar como PDF»."); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    doc.setFontSize(10);
+    const lines = doc.splitTextToSize(buildResumen().replace(/→/g, "-"), 180);
+    let y = 15;
+    lines.forEach((ln) => {
+      if (y > 285) { doc.addPage(); y = 15; }
+      doc.text(ln, 15, y);
+      y += 5;
+    });
+    descargar(doc.output("blob"), "resumen-vacaciones-festivos.pdf");
+  } catch (e) {
+    alert("No se ha podido crear el PDF. Usa «Imprimir o guardar como PDF».");
+  }
+});
+$("btnTxt").addEventListener("click", () => {
+  descargar(new Blob([buildResumen()], { type: "text/plain;charset=utf-8" }), "resumen-vacaciones-festivos.txt");
+});
+
+// SALARIO Y LIQUIDACIÓN (orientativo, brutos)
+function calcularSalario() {
+  const out = $("resultSal");
+  const salarioAnual = parseFloat($("salarioAnual").value);
+  const pagas = parseInt($("pagas").value, 10) || 14;
+  const hSem = parseFloat($("horasSem").value);
+  const hComp = parseFloat($("horasCompletas").value) || 40;
+  const cese = parseFecha($("fCese").value);
+  const media = $("jornada").value === "media";
+  if (!salarioAnual || (media && !hSem) || !cese) {
+    out.innerHTML = `<p class="note">Indica el salario anual, tus horas semanales y la fecha de cese para ver el cálculo.</p>`;
+    return;
+  }
+  const factor = media ? Math.min(hSem / hComp, 1) : 1;
+  const anualEf = salarioAnual * factor;
+  const base = anualEf / pagas;                 // importe de una paga ordinaria
+  const diario = base / 30;
+  const anio = cese.getFullYear();
+  const inicio = parseFecha($("inicio").value);
+  const ini1 = new Date(anio, 0, 1);
+  const desde = inicio && inicio > ini1 ? inicio : ini1;
+  const diasAnio = Math.min(Math.max(diasNaturales(desde, cese), 0), 365);
+  const salarioPend = base * Math.min(cese.getDate(), 30) / 30;
+  const extras = Math.max(pagas - 12, 0) * base;
+  const prorrataExtra = extras * diasAnio / 365;
+  const derecho = derechoVacaciones(anio);
+  const periodos = estado.vacaciones.filter((p) => p.ini.getFullYear() === anio);
+  const disfr = periodos.reduce((s, p) => s + diasNaturales(p.ini, p.fin), 0);
+  const festAnio = estado.festivos.filter((f) => f.fecha.getFullYear() === anio);
+  const acum = festAnio.filter((f) => f.estado === "acumulado").length;
+  const vacPend = Math.max(derecho.total + acum - disfr, 0);
+  const vacPagar = vacPend * diario;
+  const pendComp = festAnio.filter((f) => f.estado === "pendiente").length;
+  const total = salarioPend + prorrataExtra + vacPagar;
+  const ssPct = parseFloat($("ssPct").value) || 0;
+  const irpfRaw = $("irpfPct").value;
+  const irpfPct = irpfRaw === "" ? null : parseFloat(irpfRaw);
+  const ss = total * ssPct / 100;
+  const irpf = irpfPct === null ? null : total * irpfPct / 100;
+  const neto = irpf === null ? null : total - ss - irpf;
+  const eur = (n) => n.toLocaleString("es-ES", { style: "currency", currency: "EUR" });
+  out.innerHTML = `
+    <div class="stat"><span>Tu jornada</span><strong>${Math.round(factor * 100)} %</strong></div>
+    <div class="stat"><span>Salario anual a tu jornada</span><strong>${eur(anualEf)}</strong></div>
+    <div class="stat"><span>Salario pendiente del mes del cese</span><strong>${eur(salarioPend)}</strong></div>
+    <div class="stat"><span>Parte proporcional de pagas extra</span><strong>${eur(prorrataExtra)}</strong></div>
+    <div class="stat"><span>Vacaciones no disfrutadas (${vacPend} días)</span><strong>${eur(vacPagar)}</strong></div>
+    <div class="stat"><span>Total bruto orientativo</span><strong>${eur(total)}</strong></div>
+    <div class="stat"><span>Cotizaciones Seguridad Social (${ssPct} %)</span><strong>−${eur(ss)}</strong></div>
+    ${irpf === null
+      ? `<p class="note">Indica tu retención de IRPF para ver el neto.</p>`
+      : `<div class="stat"><span>Retención IRPF (${irpfPct} %)</span><strong>−${eur(irpf)}</strong></div>
+         <div class="stat"><span>Neto orientativo</span><strong>${eur(neto)}</strong></div>`}
+    ${pendComp ? `<p class="note">Tienes ${pendComp} festivo(s) pendientes de compensar. No están incluidos en el total hasta que se confirme su pago.</p>` : ""}
+    <p class="note">Importes brutos orientativos, sin retenciones de IRPF ni cotizaciones. El cálculo exacto depende del convenio y de tu nómina.</p>`;
+}
+// Bruto a partir del neto: neto = bruto × (1 − SS − IRPF)
+function brutoDesdeNeto() {
+  const neto = parseFloat($("netoMensual").value);
+  const irpfRaw = $("irpfPct").value;
+  const pagas = parseInt($("pagas").value, 10) || 14;
+  const media = $("jornada").value === "media";
+  const hSem = parseFloat($("horasSem").value);
+  const hComp = parseFloat($("horasCompletas").value) || 40;
+  const ss = (parseFloat($("ssPct").value) || 0) / 100;
+  const irpf = parseFloat(irpfRaw) / 100;
+  if (!neto || irpfRaw === "") {
+    $("resultSal").innerHTML = `<p class="note">Indica tu salario neto mensual y tu retención de IRPF para calcular el bruto.</p>`;
+    return;
+  }
+  if (media && !hSem) {
+    $("resultSal").innerHTML = `<p class="note">Indica tus horas semanales de media jornada.</p>`;
+    return;
+  }
+  if (1 - ss - irpf <= 0) {
+    $("resultSal").innerHTML = `<p class="note">Los porcentajes de Seguridad Social e IRPF son demasiado altos. Revísalos en tu nómina.</p>`;
+    return;
+  }
+  const brutoMensual = neto / (1 - ss - irpf);
+  const anualTuJornada = brutoMensual * pagas;
+  const factor = media ? Math.min(hSem / hComp, 1) : 1;
+  // El campo de salario anual está en jornada completa: se corrige la proporción
+  $("salarioAnual").value = Math.round((anualTuJornada / factor) * 100) / 100;
+  calcularSalario();
+}
+$("btnBruto").addEventListener("click", brutoDesdeNeto);
+$("btnSal").addEventListener("click", calcularSalario);
+
+// AVISOS DE PLAZO: 72 horas desde el aviso para responder por escrito (fijo discontinuo)
+function renderAlertas() {
+  const box = $("alertaPlazos");
+  if (!box) return;
+  if (tipo() !== "discontinuo") { box.hidden = true; return; }
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  const avisos = [];
+  estado.llamamientos.filter((l) => !l.respondido).forEach((l) => {
+    const limite = new Date(l.com.getTime() + 3 * DIA);
+    const quedan = diasEntre(hoy, limite);
+    if (quedan < 0) avisos.push(`Plazo vencido el ${fmt(limite)} para responder al llamamiento del ${fmt(l.inc)}.`);
+    else if (quedan === 0) avisos.push(`Hoy vence el plazo para responder al llamamiento del ${fmt(l.inc)}.`);
+    else if (quedan <= 2) avisos.push(`Quedan ${quedan} día(s) para responder al llamamiento del ${fmt(l.inc)} (plazo: ${fmt(limite)}).`);
+  });
+  box.hidden = avisos.length === 0;
+  box.innerHTML = avisos.map((a) => `<p class="alert" style="margin:0 0 6px">⚠ ${a}</p>`).join("");
+}
+
+// FESTIVOS LOCALES: los añade cada persona según su municipio
+function renderLocales() {
+  const cont = $("listaLocales");
+  const sel = $("fTrabAtajo");
+  if (cont) {
+    cont.innerHTML = estado.locales.length
+      ? estado.locales.map((d, i) => `
+          <div class="item" style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+            <span>${fmt(d)} · festivo local</span>
+            <button class="small" data-dellocal="${i}">Eliminar</button>
+          </div>`).join("")
+      : `<p class="empty">No has añadido festivos locales.</p>`;
+    cont.querySelectorAll("[data-dellocal]").forEach((b) => b.addEventListener("click", () => {
+      estado.locales.splice(+b.dataset.dellocal, 1); renderVacaciones();
+    }));
+  }
+  if (sel) {
+    sel.innerHTML = `<option value="">Elige un festivo o escribe la fecha abajo</option>`;
+    FESTIVOS_GENERALES_2026.forEach((f) => {
+      const o = document.createElement("option");
+      o.value = f.fecha; o.textContent = f.texto;
+      sel.appendChild(o);
+    });
+    estado.locales.forEach((d) => {
+      const o = document.createElement("option");
+      o.value = ymd(d); o.textContent = `${fmt(d)} · festivo local`;
+      sel.appendChild(o);
+    });
+  }
+}
+$("addLocal").addEventListener("click", () => {
+  const d = parseFecha($("fLocalFecha").value);
+  if (!d) { alert("Indica la fecha del festivo local."); return; }
+  if (estado.locales.some((x) => ymd(x) === ymd(d))) { alert("Ese festivo ya está añadido."); return; }
+  estado.locales.push(d);
+  estado.locales.sort((a, b) => a - b);
+  $("fLocalFecha").value = "";
+  renderVacaciones();
+});
+
+initDb();
+</script>
+<script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");</script>
+</body>
+</html>
